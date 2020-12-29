@@ -1,0 +1,11 @@
+[package]
+name = "angle_gles_generator"
+version = "0.1.0"
+authors = ["tasogare3710 <tasogare.android@gmail.com>"]
+edition = "2018"
+
+[dependencies.gl_generator]
+version = "=0.14.0"
+
+[dependencies.bindgen]
+version = "=0.56.0"
