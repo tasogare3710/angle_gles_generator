@@ -1,94 +1,19 @@
 use ::{
-    bindgen::{self, RustTarget},
-    gl_generator::{Api, Fallbacks, Profile, Registry},
+    angle_gles_generator::{build_eglplatform, build_khrplatform, gen_egl, gen_gles},
+    bindgen::{Bindings, RustTarget},
+    gl_generator::Fallbacks,
     serde::Deserialize,
     std::{env, fs::File, ops::Deref, path::Path},
 };
 
-fn binding(target: Option<RustTarget>) -> bindgen::Builder {
-    target.map_or_else(bindgen::builder, |target| bindgen::builder().rust_target(target))
-}
-
-fn coerce_generate_and_write(bindings: Result<bindgen::Bindings, ()>, output: &Path) {
-    bindings
-        .expect("generate the bindings failed")
-        .write_to_file(output)
-        .expect("write the bindings failed");
-}
-
-fn gen_khrplatform(output: &Path, angle_out_home: &Path, rust_target: Option<RustTarget>) {
-    println!("output file {:?}", output);
-    let khrplatform = angle_out_home
-        .join("../")
-        .join("include")
-        .join("KHR")
-        .join("khrplatform.h");
-    coerce_generate_and_write(
-        binding(rust_target)
-            .header(khrplatform.to_str().expect("expect UTF-8"))
-            .whitelist_type("khronos_utime_nanoseconds_t")
-            .whitelist_type("khronos_uint64_t")
-            .whitelist_type("khronos_ssize_t")
-            .generate(),
-        output,
-    );
-}
-
-fn gen_eglplatform(output: &Path, angle_out_home: &Path, rust_target: Option<RustTarget>) {
-    println!("output file {:?}", output);
-    let inclide_dir = angle_out_home.join("../").join("include");
-    let eglplatform = inclide_dir.join("EGL").join("eglplatform.h");
-    let mut inclide_search = String::from("-I");
-    inclide_search.push_str(inclide_dir.to_str().expect("expect UTF-8"));
-    println!("inclide_search: {}", inclide_search);
-    coerce_generate_and_write(
-        binding(rust_target)
-            .clang_args(&[inclide_search])
-            .header(eglplatform.to_str().expect("expect UTF-8"))
-            .whitelist_type("EGLNativeDisplayType")
-            .whitelist_type("EGLNativePixmapType")
-            .whitelist_type("EGLNativeWindowType")
-            .whitelist_type("EGLint")
-            .whitelist_type("NativeDisplayType")
-            .whitelist_type("NativePixmapType")
-            .whitelist_type("NativeWindowType")
-            .generate(),
-        output,
-    );
-}
-
-/// EGL1.4のバインディングを生成する。
-fn gen_egl<'a, EXT>(output: &Path, fallbacks: Fallbacks, extensions: EXT)
-where
-    EXT: AsRef<[&'a str]>,
-{
-    println!("output file {:?}", output);
-    let mut output = File::create(output).unwrap();
-    Registry::new(Api::Egl, (1, 4), Profile::Core, fallbacks, extensions)
-        .write_bindings(gl_generator::GlobalGenerator, &mut output)
-        .unwrap();
-}
-
-/// OpenGLES `version`のバインディングを生成する。
-fn gen_gles<'a, EXT>(output: &Path, version: (u8, u8), fallbacks: Fallbacks, extensions: EXT)
-where
-    EXT: AsRef<[&'a str]>,
-{
-    println!("output file {:?}", output);
-    let mut output = File::create(output).unwrap();
-    Registry::new(Api::Gles2, version, Profile::Core, fallbacks, extensions)
-        .write_bindings(gl_generator::GlobalGenerator, &mut output)
-        .unwrap();
-}
-
 #[derive(Eq, PartialEq, Deserialize)]
-enum Fallback {
+pub enum Fallback {
     All,
     None,
 }
 
 impl Fallback {
-    fn convert(self) -> Fallbacks {
+    pub fn convert(self) -> Fallbacks {
         if self == Fallback::All {
             Fallbacks::All
         } else {
@@ -98,14 +23,14 @@ impl Fallback {
 }
 
 #[derive(Deserialize)]
-struct Config {
-    rust_version: Box<str>,
-    angle_out_home: Box<str>,
-    fallback: Fallback,
-    egl_extensions: Vec<Box<str>>,
-    gles_version: Box<str>,
-    gles_extensions: Vec<Box<str>>,
-    dest: Box<str>,
+pub struct Config {
+    pub rust_version: Box<str>,
+    pub angle_out_home: Box<str>,
+    pub fallback: Fallback,
+    pub egl_extensions: Vec<Box<str>>,
+    pub gles_version: (u8, u8),
+    pub gles_extensions: Vec<Box<str>>,
+    pub dest: Box<str>,
 }
 
 /// 大文字小文字を問わないバージョン文字列を変換する。
@@ -120,15 +45,11 @@ fn convert_rust_target(rust_version: Box<str>) -> Option<RustTarget> {
     }
 }
 
-/// バージョン文字列を変換する。
-/// 対応するバージョンがない場合`3.1`とする
-fn convert_gles_version(gles_version: Box<str>) -> (u8, u8) {
-    match &*gles_version {
-        "2.0" => (2, 0),
-        "3.0" => (3, 0),
-        "3.1" => (3, 1),
-        _ => (3, 1),
-    }
+fn coerce_generate_and_write(bindings: Result<Bindings, ()>, output: &Path) {
+    bindings
+        .expect("generate the bindings failed")
+        .write_to_file(output)
+        .expect("write the bindings failed");
 }
 
 fn present_config_file_path(config: File) -> Result<(), Box<dyn std::error::Error>> {
@@ -151,17 +72,29 @@ fn present_config_file_path(config: File) -> Result<(), Box<dyn std::error::Erro
 
     let rust_target = convert_rust_target(rust_version);
     let dest = Path::new(dest.deref());
-    gen_khrplatform(&dest.join("khrplatform_bindings.rs"), angle_out_home, rust_target);
-    gen_eglplatform(&dest.join("eglplatform_bindings.rs"), angle_out_home, rust_target);
+
+    let khrplatform_output = dest.join("khrplatform_bindings.rs");
+    println!("output file {:?}", khrplatform_output);
+    let binding = build_khrplatform(angle_out_home, rust_target).generate();
+    coerce_generate_and_write(binding, &khrplatform_output);
+
+    let eglplatform_output = dest.join("eglplatform_bindings.rs");
+    println!("output file {:?}", eglplatform_output);
+    let binding = build_eglplatform(angle_out_home, rust_target).generate();
+    coerce_generate_and_write(binding, &eglplatform_output);
 
     let fallbacks = fallback.convert();
 
+    let egl_output = dest.join("egl_bindings.rs");
+    println!("output file {:?}", egl_output);
     let egl_extensions = egl_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    gen_egl(&dest.join("egl_bindings.rs"), fallbacks, egl_extensions);
+    gen_egl(&egl_output, fallbacks, egl_extensions)?;
 
+    let gles_output = dest.join("gl_bindings.rs");
+    println!("output file {:?}", gles_output);
     let gles_extensions = gles_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    let gles_version = convert_gles_version(gles_version);
-    gen_gles(&dest.join("gl_bindings.rs"), gles_version, fallbacks, gles_extensions);
+    gen_gles(&gles_output, gles_version, fallbacks, gles_extensions)?;
+
     Ok(())
 }
 

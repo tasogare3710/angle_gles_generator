@@ -1,8 +1,15 @@
 [package]
 name = "angle_gles_generator"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["tasogare3710 <tasogare.android@gmail.com>"]
 edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "angle_gles_generator"
+path = "src/main.rs"
 
 [dependencies.serde]
 version = "=1.0.125"
