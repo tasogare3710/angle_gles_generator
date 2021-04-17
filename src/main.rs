@@ -2,8 +2,14 @@ use ::{
     angle_gles_generator::{build_eglplatform, build_khrplatform, gen_egl, gen_gles},
     bindgen::{Bindings, RustTarget},
     gl_generator::Fallbacks,
+    pico_args::Arguments,
     serde::Deserialize,
-    std::{env, fs::File, ops::Deref, path::Path},
+    std::{
+        convert::Infallible,
+        fs::File,
+        ops::Deref,
+        path::{Path, PathBuf},
+    },
 };
 
 #[derive(Eq, PartialEq, Deserialize)]
@@ -30,7 +36,6 @@ pub struct Config {
     pub egl_extensions: Vec<Box<str>>,
     pub gles_version: (u8, u8),
     pub gles_extensions: Vec<Box<str>>,
-    pub dest: Box<str>,
 }
 
 /// 大文字小文字を問わないバージョン文字列を変換する。
@@ -52,17 +57,17 @@ fn coerce_generate_and_write(bindings: Result<Bindings, ()>, output: &Path) {
         .expect("write the bindings failed");
 }
 
-fn present_config_file_path(config: File) -> Result<(), Box<dyn std::error::Error>> {
-    let Config {
+fn present_config_file_path(
+    Config {
         rust_version,
         angle_out_home,
         fallback,
         egl_extensions,
         gles_version,
         gles_extensions,
-        dest,
-    } = ron::de::from_reader(std::io::BufReader::new(config))?;
-
+    }: Config,
+    dest: PathBuf,
+) -> Result<(), Box<dyn std::error::Error>> {
     // XXX: khrplatform.hとeglplatform.hの参照にANGLEに依存しないようにしたい
     let angle_out_home = Path::new(angle_out_home.deref());
     if !angle_out_home.exists() {
@@ -98,10 +103,45 @@ fn present_config_file_path(config: File) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
+fn generate(mut args: Arguments) -> Result<(), Box<dyn std::error::Error>> {
+    let config = args.value_from_fn(["--config", "-g"], |a| {
+        ron::de::from_reader(std::io::BufReader::new(File::open(a)?))
+    })?;
+    let dest = args.value_from_fn::<_, _, Infallible>(["--out", "-o"], |a| Ok(a.into()))?;
+    present_config_file_path(config, dest)
+}
+
+const HELP: &str = "\
+Usage:
+    angle_gles_generator (SUBCOMMAND | FLAGS)
+
+SUBCOMMAND:
+    generate (--config | -g) PATH (--out | -o) OUT
+
+FLAGS:
+    (--help | -h)   Print this help
+";
+
+fn print_help() -> Result<(), Box<dyn std::error::Error>> {
+    println!("{}", HELP);
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    match env::args().nth(1).map(File::open) {
-        Some(Ok(config)) => present_config_file_path(config),
-        Some(Err(err)) => Err(err.into()),
-        None => Ok(println!("usage: angle_gles_generator <config_file_path.ron>")),
+    let mut args = pico_args::Arguments::from_env();
+    if args.contains(["--help", "-h"]) {
+        print_help()
+    } else {
+        match args.subcommand() {
+            Ok(Some(it)) => match &*it {
+                "generate" | "g" => generate(args),
+                _ => print_help(),
+            },
+            Ok(None) => print_help(),
+            Err(e) => {
+                println!("{}", e);
+                Ok(())
+            },
+        }
     }
 }

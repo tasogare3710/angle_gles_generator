@@ -17,9 +17,9 @@ pub fn build_khrplatform(angle_out_home: &Path, rust_target: Option<RustTarget>)
     let khrplatform = khrplatform.to_str().expect("expect UTF-8");
     build_with(rust_target)
         .header(khrplatform)
-        .whitelist_type("khronos_utime_nanoseconds_t")
-        .whitelist_type("khronos_uint64_t")
-        .whitelist_type("khronos_ssize_t")
+        .allowlist_type("khronos_utime_nanoseconds_t")
+        .allowlist_type("khronos_uint64_t")
+        .allowlist_type("khronos_ssize_t")
 }
 
 pub fn build_eglplatform(angle_out_home: &Path, rust_target: Option<RustTarget>) -> Builder {
@@ -32,13 +32,13 @@ pub fn build_eglplatform(angle_out_home: &Path, rust_target: Option<RustTarget>)
     build_with(rust_target)
         .clang_args(&[include_search])
         .header(eglplatform)
-        .whitelist_type("EGLNativeDisplayType")
-        .whitelist_type("EGLNativePixmapType")
-        .whitelist_type("EGLNativeWindowType")
-        .whitelist_type("EGLint")
-        .whitelist_type("NativeDisplayType")
-        .whitelist_type("NativePixmapType")
-        .whitelist_type("NativeWindowType")
+        .allowlist_type("EGLNativeDisplayType")
+        .allowlist_type("EGLNativePixmapType")
+        .allowlist_type("EGLNativeWindowType")
+        .allowlist_type("EGLint")
+        .allowlist_type("NativeDisplayType")
+        .allowlist_type("NativePixmapType")
+        .allowlist_type("NativeWindowType")
 }
 
 /// EGL1.4のバインディングを生成する。

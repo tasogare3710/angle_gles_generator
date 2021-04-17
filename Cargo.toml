@@ -22,4 +22,7 @@ version = "=0.6.4"
 version = "=0.14.0"
 
 [dependencies.bindgen]
-version = "=0.57.0"
+version = "=0.58.1"
+
+[dependencies.pico-args]
+version = "=0.4.0"
