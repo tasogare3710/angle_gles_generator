@@ -1,0 +1,67 @@
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Third Party Licenses</title>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: black;
+                color: white;
+            }
+            a:link {
+                color: aqua;
+            }
+            a:visited {
+                color: fuchsia;
+            }
+        }
+        body {
+            line-height: 1.5;
+        }
+        header, footer, main, section {
+            margin-top: 3ch;
+            margin-bottom: 3ch;
+        }
+        .license-text {
+            margin-top: 6ch;
+            margin-bottom: 6ch;
+            white-space: break-spaces;
+        }
+    </style>
+</head>
+<body>
+    <header id="intro">
+        <h1>Third Party Licenses</h1>
+        <p>This page lists the licenses of the projects used in cargo-about.</p>
+    </header>
+    <section id="licenses-overview">
+        <header><h1>Overview of licenses:</h1></header>
+        <ul>
+            {{#each overview}}
+            <li><a href="#license-{{id}}">{{name}}</a> ({{count}})</li>
+            {{/each}}
+        </ul>
+    </section>
+    <main id="container">
+        <header><h1>All license text:</h1></header>
+        <section id="licenses">
+            {{#each licenses}}
+            <article class="license">
+                <header>
+                    <h2 id="license-{{id}}">{{name}}</h2>
+                    <p>Used by:</p>
+                    <ul class="license-used-by">
+                        {{#each used_by}}
+                        <li><a href="{{#if crate.repository}} {{crate.repository}} {{else}} https://crates.io/crates/{{crate.name}} {{/if}}">{{crate.name}} {{crate.version}}</a></li>
+                        {{/each}}
+                    </ul>
+                </header>
+                <pre class="license-text">{{text}}</pre>
+            </article>
+            <hr/>
+            {{/each}}
+        </section>
+    </main>
+    <footer>END OF THIRD PARTY LICENSES</footer>
+</body>
+</html>
