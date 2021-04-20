@@ -33,6 +33,7 @@ pub struct Config {
     pub rust_version: Box<str>,
     pub angle_out_home: Box<str>,
     pub fallback: Fallback,
+    pub egl_version: (u8, u8),
     pub egl_extensions: Vec<Box<str>>,
     pub gles_version: (u8, u8),
     pub gles_extensions: Vec<Box<str>>,
@@ -62,6 +63,7 @@ fn present_config_file_path(
         rust_version,
         angle_out_home,
         fallback,
+        egl_version,
         egl_extensions,
         gles_version,
         gles_extensions,
@@ -93,7 +95,7 @@ fn present_config_file_path(
     let egl_output = dest.join("egl_bindings.rs");
     println!("output file {:?}", egl_output);
     let egl_extensions = egl_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    gen_egl(&egl_output, fallbacks, egl_extensions)?;
+    gen_egl(&egl_output, egl_version, fallbacks, egl_extensions)?;
 
     let gles_output = dest.join("gl_bindings.rs");
     println!("output file {:?}", gles_output);

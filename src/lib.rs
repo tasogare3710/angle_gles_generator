@@ -41,13 +41,13 @@ pub fn build_eglplatform(angle_out_home: &Path, rust_target: Option<RustTarget>)
         .allowlist_type("NativeWindowType")
 }
 
-/// EGL1.4のバインディングを生成する。
-pub fn gen_egl<'a, E>(output: &Path, fallbacks: Fallbacks, extensions: E) -> io::Result<()>
+/// EGL `version`のバインディングを生成する。
+pub fn gen_egl<'a, E>(output: &Path, version: (u8, u8), fallbacks: Fallbacks, extensions: E) -> io::Result<()>
 where
     E: AsRef<[&'a str]>,
 {
     let mut output = File::create(output)?;
-    Registry::new(Api::Egl, (1, 4), Profile::Core, fallbacks, extensions)
+    Registry::new(Api::Egl, version, Profile::Core, fallbacks, extensions)
         .write_bindings(gl_generator::GlobalGenerator, &mut output)
 }
 
