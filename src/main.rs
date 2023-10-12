@@ -1,5 +1,5 @@
 use ::{
-    angle_gles_generator::{build_eglplatform, build_khrplatform, gen_egl, gen_gles},
+    angle_gles_generator::{build_eglplatform, build_khrplatform, generate_egl, generate_gles},
     bindgen::RustTarget,
     gl_generator::Fallbacks,
     pico_args::Arguments,
@@ -38,7 +38,7 @@ pub enum Generator {
     StructGenerator,
 }
 
-macro_rules! pass_generator {
+macro_rules! exec_generator {
     ($generator:ident, $generator_fn:ident, $output:ident, $version:ident, $fallbacks:ident, $extensions:ident) => {{
         match $generator {
             Generator::DebugStructGenerator => $generator_fn(
@@ -134,13 +134,13 @@ fn present_config_file_path(
     let output = dest.join("egl_bindings.rs");
     println!("output file {:?}", output);
     let extensions = egl_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    pass_generator!(generator, gen_egl, output, egl_version, fallbacks, extensions)
+    exec_generator!(generator, generate_egl, output, egl_version, fallbacks, extensions)
         .expect("failed to write the bindings");
 
     let output = dest.join("gl_bindings.rs");
     println!("output file {:?}", output);
     let extensions = gles_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    pass_generator!(generator, gen_gles, output, gles_version, fallbacks, extensions)
+    exec_generator!(generator, generate_gles, output, gles_version, fallbacks, extensions)
         .expect("failed to write the bindings");
 
     Ok(())

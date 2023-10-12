@@ -40,7 +40,7 @@ pub fn build_eglplatform(angle_out_home: &Path, rust_target: RustTarget) -> Buil
 }
 
 /// EGL `version`のバインディングを生成する。
-pub fn gen_egl<'a, E, G: Generator>(
+pub fn generate_egl<'a, E, G: Generator>(
     output: &Path,
     version: (u8, u8),
     fallbacks: Fallbacks,
@@ -55,7 +55,7 @@ where
 }
 
 /// OpenGLES `version`のバインディングを生成する。
-pub fn gen_gles<'a, E, G: Generator>(
+pub fn generate_gles<'a, E, G: Generator>(
     output: &Path,
     version: (u8, u8),
     fallbacks: Fallbacks,
