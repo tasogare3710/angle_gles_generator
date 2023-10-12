@@ -1,3 +1,5 @@
+use bindgen::BindgenError;
+
 use ::{
     angle_gles_generator::{build_eglplatform, build_khrplatform, gen_egl, gen_gles},
     bindgen::{Bindings, RustTarget},
@@ -51,7 +53,7 @@ fn convert_rust_target(rust_version: Box<str>) -> Option<RustTarget> {
     }
 }
 
-fn coerce_generate_and_write(bindings: Result<Bindings, ()>, output: &Path) {
+fn coerce_generate_and_write(bindings: Result<Bindings, BindgenError>, output: &Path) {
     bindings
         .expect("generate the bindings failed")
         .write_to_file(output)
