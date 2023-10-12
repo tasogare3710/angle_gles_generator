@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use bindgen::BindgenError;
 
 use ::{
@@ -41,18 +43,6 @@ pub struct Config {
     pub gles_extensions: Vec<Box<str>>,
 }
 
-/// 大文字小文字を問わないバージョン文字列を変換する。
-/// bindgenのMSRVが`1.40`なので`1.40`か`nightly`が有効。
-/// 対応するバージョンがない場合`None`とする。
-fn convert_rust_target(rust_version: Box<str>) -> Option<RustTarget> {
-    use RustTarget::*;
-    match &*rust_version.to_lowercase() {
-        "1.40" => Some(Stable_1_40),
-        "nightly" => Some(Nightly),
-        _ => None,
-    }
-}
-
 fn coerce_generate_and_write(bindings: Result<Bindings, BindgenError>, output: &Path) {
     bindings
         .expect("generate the bindings failed")
@@ -79,30 +69,42 @@ fn present_config_file_path(
         return Ok(());
     }
 
-    let rust_target = convert_rust_target(rust_version);
+    let rust_target = RustTarget::from_str(&*rust_version)?;
     let dest = Path::new(dest.deref());
 
     let khrplatform_output = dest.join("khrplatform_bindings.rs");
     println!("output file {:?}", khrplatform_output);
-    let binding = build_khrplatform(angle_out_home, rust_target).generate();
-    coerce_generate_and_write(binding, &khrplatform_output);
+    let bindings = build_khrplatform(angle_out_home, rust_target).generate();
+    coerce_generate_and_write(bindings, &khrplatform_output);
 
     let eglplatform_output = dest.join("eglplatform_bindings.rs");
     println!("output file {:?}", eglplatform_output);
-    let binding = build_eglplatform(angle_out_home, rust_target).generate();
-    coerce_generate_and_write(binding, &eglplatform_output);
+    let bindings = build_eglplatform(angle_out_home, rust_target).generate();
+    coerce_generate_and_write(bindings, &eglplatform_output);
 
     let fallbacks = fallback.convert();
 
     let egl_output = dest.join("egl_bindings.rs");
     println!("output file {:?}", egl_output);
     let egl_extensions = egl_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    gen_egl(&egl_output, egl_version, fallbacks, egl_extensions, gl_generator::GlobalGenerator)?;
+    gen_egl(
+        &egl_output,
+        egl_version,
+        fallbacks,
+        egl_extensions,
+        gl_generator::GlobalGenerator,
+    )?;
 
     let gles_output = dest.join("gl_bindings.rs");
     println!("output file {:?}", gles_output);
     let gles_extensions = gles_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    gen_gles(&gles_output, gles_version, fallbacks, gles_extensions, gl_generator::GlobalGenerator)?;
+    gen_gles(
+        &gles_output,
+        gles_version,
+        fallbacks,
+        gles_extensions,
+        gl_generator::GlobalGenerator,
+    )?;
 
     Ok(())
 }
