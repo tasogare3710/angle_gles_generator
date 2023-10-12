@@ -1,10 +1,6 @@
-use std::str::FromStr;
-
-use bindgen::BindgenError;
-
 use ::{
     angle_gles_generator::{build_eglplatform, build_khrplatform, gen_egl, gen_gles},
-    bindgen::{Bindings, RustTarget},
+    bindgen::{BindgenError, Bindings, RustTarget},
     gl_generator::Fallbacks,
     pico_args::Arguments,
     serde::Deserialize,
@@ -13,6 +9,7 @@ use ::{
         fs::File,
         ops::Deref,
         path::{Path, PathBuf},
+        str::FromStr,
     },
 };
 
@@ -33,7 +30,59 @@ impl Fallback {
 }
 
 #[derive(Deserialize)]
+pub enum Generator {
+    DebugStructGenerator,
+    GlobalGenerator,
+    StaticGenerator,
+    StaticStructGenerator,
+    StructGenerator,
+}
+
+macro_rules! pass_generator {
+    ($generator:ident, $generator_fn:ident, $output:ident, $version:ident, $fallbacks:ident, $extensions:ident) => {{
+        match $generator {
+            Generator::DebugStructGenerator => $generator_fn(
+                &$output,
+                $version,
+                $fallbacks,
+                $extensions,
+                gl_generator::DebugStructGenerator,
+            ),
+            Generator::GlobalGenerator => $generator_fn(
+                &$output,
+                $version,
+                $fallbacks,
+                $extensions,
+                gl_generator::GlobalGenerator,
+            ),
+            Generator::StaticGenerator => $generator_fn(
+                &$output,
+                $version,
+                $fallbacks,
+                $extensions,
+                gl_generator::StaticGenerator,
+            ),
+            Generator::StaticStructGenerator => $generator_fn(
+                &$output,
+                $version,
+                $fallbacks,
+                $extensions,
+                gl_generator::StaticStructGenerator,
+            ),
+            Generator::StructGenerator => $generator_fn(
+                &$output,
+                $version,
+                $fallbacks,
+                $extensions,
+                gl_generator::StructGenerator,
+            ),
+        }
+    }};
+}
+
+#[derive(Deserialize)]
 pub struct Config {
+    pub generator: Generator,
     pub rust_version: Box<str>,
     pub angle_out_home: Box<str>,
     pub fallback: Fallback,
@@ -52,6 +101,7 @@ fn coerce_generate_and_write(bindings: Result<Bindings, BindgenError>, output: &
 
 fn present_config_file_path(
     Config {
+        generator,
         rust_version,
         angle_out_home,
         fallback,
@@ -84,27 +134,15 @@ fn present_config_file_path(
 
     let fallbacks = fallback.convert();
 
-    let egl_output = dest.join("egl_bindings.rs");
-    println!("output file {:?}", egl_output);
-    let egl_extensions = egl_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    gen_egl(
-        &egl_output,
-        egl_version,
-        fallbacks,
-        egl_extensions,
-        gl_generator::GlobalGenerator,
-    )?;
+    let output = dest.join("egl_bindings.rs");
+    println!("output file {:?}", output);
+    let extensions = egl_extensions.iter().map(Box::deref).collect::<Vec<_>>();
+    pass_generator!(generator, gen_egl, output, egl_version, fallbacks, extensions)?;
 
-    let gles_output = dest.join("gl_bindings.rs");
-    println!("output file {:?}", gles_output);
-    let gles_extensions = gles_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    gen_gles(
-        &gles_output,
-        gles_version,
-        fallbacks,
-        gles_extensions,
-        gl_generator::GlobalGenerator,
-    )?;
+    let output = dest.join("gl_bindings.rs");
+    println!("output file {:?}", output);
+    let extensions = gles_extensions.iter().map(Box::deref).collect::<Vec<_>>();
+    pass_generator!(generator, gen_gles, output, gles_version, fallbacks, extensions)?;
 
     Ok(())
 }
