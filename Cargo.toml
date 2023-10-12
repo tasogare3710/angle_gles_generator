@@ -3,6 +3,7 @@ name = "angle_gles_generator"
 version = "0.4.0"
 authors = ["tasogare3710 <tasogare.android@gmail.com>"]
 edition = "2021"
+license = "BSD-2-Clause"
 
 [lib]
 path = "src/lib.rs"
