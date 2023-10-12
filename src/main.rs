@@ -1,6 +1,6 @@
 use ::{
     angle_gles_generator::{build_eglplatform, build_khrplatform, gen_egl, gen_gles},
-    bindgen::{BindgenError, Bindings, RustTarget},
+    bindgen::RustTarget,
     gl_generator::Fallbacks,
     pico_args::Arguments,
     serde::Deserialize,
@@ -92,13 +92,6 @@ pub struct Config {
     pub gles_extensions: Vec<Box<str>>,
 }
 
-fn coerce_generate_and_write(bindings: Result<Bindings, BindgenError>, output: &Path) {
-    bindings
-        .expect("generate the bindings failed")
-        .write_to_file(output)
-        .expect("write the bindings failed");
-}
-
 fn present_config_file_path(
     Config {
         generator,
@@ -124,25 +117,31 @@ fn present_config_file_path(
 
     let khrplatform_output = dest.join("khrplatform_bindings.rs");
     println!("output file {:?}", khrplatform_output);
-    let bindings = build_khrplatform(angle_out_home, rust_target).generate();
-    coerce_generate_and_write(bindings, &khrplatform_output);
+    build_khrplatform(angle_out_home, rust_target)
+        .generate()?
+        .write_to_file(&khrplatform_output)
+        .expect("failed to write the bindings");
 
     let eglplatform_output = dest.join("eglplatform_bindings.rs");
     println!("output file {:?}", eglplatform_output);
-    let bindings = build_eglplatform(angle_out_home, rust_target).generate();
-    coerce_generate_and_write(bindings, &eglplatform_output);
+    build_eglplatform(angle_out_home, rust_target)
+        .generate()?
+        .write_to_file(&eglplatform_output)
+        .expect("failed to write the bindings");
 
     let fallbacks = fallback.convert();
 
     let output = dest.join("egl_bindings.rs");
     println!("output file {:?}", output);
     let extensions = egl_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    pass_generator!(generator, gen_egl, output, egl_version, fallbacks, extensions)?;
+    pass_generator!(generator, gen_egl, output, egl_version, fallbacks, extensions)
+        .expect("failed to write the bindings");
 
     let output = dest.join("gl_bindings.rs");
     println!("output file {:?}", output);
     let extensions = gles_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    pass_generator!(generator, gen_gles, output, gles_version, fallbacks, extensions)?;
+    pass_generator!(generator, gen_gles, output, gles_version, fallbacks, extensions)
+        .expect("failed to write the bindings");
 
     Ok(())
 }
