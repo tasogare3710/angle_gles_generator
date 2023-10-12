@@ -97,12 +97,12 @@ fn present_config_file_path(
     let egl_output = dest.join("egl_bindings.rs");
     println!("output file {:?}", egl_output);
     let egl_extensions = egl_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    gen_egl(&egl_output, egl_version, fallbacks, egl_extensions)?;
+    gen_egl(&egl_output, egl_version, fallbacks, egl_extensions, gl_generator::GlobalGenerator)?;
 
     let gles_output = dest.join("gl_bindings.rs");
     println!("output file {:?}", gles_output);
     let gles_extensions = gles_extensions.iter().map(Box::deref).collect::<Vec<_>>();
-    gen_gles(&gles_output, gles_version, fallbacks, gles_extensions)?;
+    gen_gles(&gles_output, gles_version, fallbacks, gles_extensions, gl_generator::GlobalGenerator)?;
 
     Ok(())
 }

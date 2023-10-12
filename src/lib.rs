@@ -1,3 +1,5 @@
+use gl_generator::Generator;
+
 use ::{
     bindgen::{self, Builder, RustTarget},
     gl_generator::{Api, Fallbacks, Profile, Registry},
@@ -42,21 +44,21 @@ pub fn build_eglplatform(angle_out_home: &Path, rust_target: Option<RustTarget>)
 }
 
 /// EGL `version`のバインディングを生成する。
-pub fn gen_egl<'a, E>(output: &Path, version: (u8, u8), fallbacks: Fallbacks, extensions: E) -> io::Result<()>
+pub fn gen_egl<'a, E, G: Generator>(output: &Path, version: (u8, u8), fallbacks: Fallbacks, extensions: E, generator: G) -> io::Result<()>
 where
     E: AsRef<[&'a str]>,
 {
     let mut output = File::create(output)?;
     Registry::new(Api::Egl, version, Profile::Core, fallbacks, extensions)
-        .write_bindings(gl_generator::GlobalGenerator, &mut output)
+        .write_bindings(generator, &mut output)
 }
 
 /// OpenGLES `version`のバインディングを生成する。
-pub fn gen_gles<'a, E>(output: &Path, version: (u8, u8), fallbacks: Fallbacks, extensions: E) -> io::Result<()>
+pub fn gen_gles<'a, E, G: Generator>(output: &Path, version: (u8, u8), fallbacks: Fallbacks, extensions: E, generator: G) -> io::Result<()>
 where
     E: AsRef<[&'a str]>,
 {
     let mut output = File::create(output)?;
     Registry::new(Api::Gles2, version, Profile::Core, fallbacks, extensions)
-        .write_bindings(gl_generator::GlobalGenerator, &mut output)
+        .write_bindings(generator, &mut output)
 }
